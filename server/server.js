@@ -6,6 +6,8 @@ const _ = require('lodash');
 
 const {mongoose} = require('./db/mongoose');
 
+const {fetchCart,addToCart} = require('./service/cartService');
+
 const {Cart} = require('./models/cart');
 const {Item} = require('./models/item');
 const {User} = require('./models/user');
@@ -26,27 +28,22 @@ app.post('/items',(req,res)=>{
 
 });
 
-app.get('/cart/getCart/:userId',(req,res)=>{
+app.get('/cart/getCart/:userId',async (req,res)=>{
   if(!ObjectID.isValid(req.params.userId)){
     res.status(400).send({
       message:"Invalid Id"
     });
   }
-  Cart.findOne({
-    userId:req.params.userId
-  }).then((cart)=>{
-      if(!cart){
-        res.status(404).send({
-          message:"No item present in the cart"
-        });
-      }
-      res.send({cart});
-    }).catch((e)=>{
-      res.status(500).send()
-    });
+  const cart = await fetchCart(req.params.userId);
+  if(!cart){
+    res.status(404).send({
+         message:"No item present in the cart"
+     });
+  }
+  res.send({cart});
 });
 
-app.post('/cart/addToCart/:userId',(req,res)=>{
+app.post('/cart/addToCart/:userId',async (req,res)=>{
   const userId =req.params.userId;
   if(!ObjectID.isValid(userId)){
     res.status(400).send({
@@ -54,27 +51,18 @@ app.post('/cart/addToCart/:userId',(req,res)=>{
     });
   }
   let item = _.pick(req.body,['itemId','itemName']);
-  Cart.findOne({
-    userId
-  }).then((cartFetched)=>{
-      if(!cartFetched){
-        var cartAdded = new Cart({
-          userId : userId,
-          items : [item]
-        });
-        cartAdded.save().then((cartSaved)=>{
-          res.send(cartSaved);
-        });
-      }else{
-        cartFetched.items.push(item);
-        cartFetched.save().then((cartSaved)=>{
-          res.send(cartSaved);
-        });
-      }
-  });
-
+  const cart = await fetchCart(userId);
+  const cartAdded = null;
+  try{
+    const cart = await addToCart(userId,item);
+    res.send(cart);
+  }catch(e){
+    res.status(500).send(e);
+  }
 });
 
-app.listen(8080,()=>{
-  console.log('Started on 8080');
+const port = process.env.port || 8080;
+
+app.listen(port,()=>{
+  console.log(`Started on ${port}`);
 });
