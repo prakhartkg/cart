@@ -1,6 +1,9 @@
 const express = require('express');
 const bodyParser=require('body-parser');
 const {ObjectID} = require('mongodb');
+const morgan = require('morgan');
+const fs = require('fs');
+var path = require('path')
 
 const _ = require('lodash');
 
@@ -14,6 +17,11 @@ const {User} = require('./models/user');
 const app = express();
 
 app.use(bodyParser.json());
+
+var accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
+
+// setup the logger
+app.use(morgan('tiny', { stream: accessLogStream }))
 
 app.post('/items',(req,res)=>{
   var item = new Item({
